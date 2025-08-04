@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+   <title>Metrexy Image Lab</title>
+
+   <!-- Font Imports -->
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+
+   <!-- Three.js Library -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+   <style>
+       :root {
+           --dark-bg: #05070D;
+           --light-text: #F5F9FF;
+           --medium-text: #8A94A5;
+           --accent-primary: #00A3FF;
+           --accent-secondary: #C42DFF;
+           --ui-bg: rgba(20, 25, 38, 0.7);
+           --border-color: rgba(255, 255, 255, 0.1);
+           --focus-glow: rgba(0, 163, 255, 0.5);
+           --error-color: #f87171;
+       }
+     
+       * { margin: 0; padding: 0; box-sizing: border-box; }
+
+       html, body {
+           height: 100%;
+           overflow: hidden;
+       }
+       body {
+           font-family: 'Satoshi', sans-serif;
+           background-color: var(--dark-bg);
+           color: var(--light-text);
+           position: relative;
+       }
+       #webgl-canvas {
+           position: fixed; top: 0; left: 0; outline: none; z-index: 1;
+       }
+       
+       .app-container {
+           position: relative; z-index: 3; width: 100%;
+           height: 100vh; 
+           height: -webkit-fill-available; 
+           display: grid;
+           grid-template-rows: auto 1fr; 
+           padding: 0 2rem; 
+           gap: 1.5rem;
+           animation: fadeIn 1.5s ease-out;
+       }
+       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+     
+       .title-lockup {
+           text-align: center;
+           padding-top: max(5vh, 2rem); 
+           flex-shrink: 0;
+           animation: slideIn 1s ease-out forwards; opacity: 0;
+           position: relative; z-index: 5;
+           grid-row: 1 / 2; 
+       }
+       .title-lockup::before {
+           content: ''; position: absolute; top: 50%; left: 50%;
+           width: 200%; padding-bottom: 200%; border-radius: 50%;
+           background-image: radial-gradient(circle at center, var(--accent-primary), transparent 40%),
+                             radial-gradient(circle at center, var(--accent-secondary), transparent 40%);
+           background-position: 20% 50%, 80% 50%; background-size: 100px 100px, 120px 120px;
+           background-repeat: no-repeat; transform: translate(-50%, -50%);
+           z-index: -1; opacity: 0; filter: blur(80px);
+           transition: opacity 1s ease-in-out;
+       }
+       .app-container.loading-active .title-lockup::before {
+           opacity: 0.5; animation: aurora-glow 12s linear infinite;
+       }
+       @keyframes aurora-glow { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+       @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+       .title-lockup h1 {
+           font-size: clamp(3rem, 7vw, 5rem); font-weight: 900;
+           line-height: 1.1; letter-spacing: -0.05em; color: var(--light-text);
+       }
+       .title-lockup .subtitle {
+           font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; letter-spacing: 0.05em;
+           background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-primary));
+           background-size: 200% auto; background-clip: text;
+           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+           animation: gradient-hover 8s ease-in-out infinite;
+       }
+       @keyframes gradient-hover { 0% { background-position: 0% 50%; } 50% { background-position: 200% 50%; } 100% { background-position: 0% 50%; } }
+     
+       .generator-container{position:fixed;bottom:0;left:0;width:100%;z-index:100;padding:1rem;display:flex;flex-direction:column;align-items:center;gap:.75rem;pointer-events:none}.generator-ui{width:100%;max-width:800px;background:var(--ui-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:1.25rem;padding:.75rem;border:1px solid var(--border-color);box-shadow:0 -10px 40px rgba(0,0,0,.3);display:flex;align-items:center;gap:.75rem;pointer-events:auto;transition:border-color .3s ease}.generator-ui textarea{flex-grow:1;height:54px;resize:none;background:0 0;border:none;padding:1rem;color:var(--light-text);font-family:'Satoshi',sans-serif;font-size:1.1rem;transition:all .3s ease}.generator-ui textarea:focus{outline:0}.generator-ui textarea::placeholder{color:var(--medium-text)}.generator-ui button{width:54px;height:54px;border:none;border-radius:50%;background-color:var(--accent-primary);color:#fff;cursor:pointer;transition:all .3s ease;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0;position:relative}.generator-ui button:hover:not(:disabled){transform:scale(1.1);box-shadow:0 0 20px var(--focus-glow)}.generator-ui button:disabled{background:var(--medium-text);cursor:not-allowed;transform:none;box-shadow:none}.generator-ui button .icon,.generator-ui button .spinner{position:absolute;transition:opacity .3s ease,transform .3s ease}.generator-ui button .icon{opacity:1}.generator-ui button .spinner{opacity:0;width:24px;height:24px;border:3px solid hsla(0,0%,100%,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.generator-ui button.loading .icon{opacity:0;transform:scale(.5)}.generator-ui button.loading .spinner{opacity:1}.advanced-settings{width:100%;max-width:800px;pointer-events:auto;background:var(--ui-bg);border-radius:1rem;border:1px solid var(--border-color);padding:1rem;display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:.5rem;transition:opacity .5s ease,transform .5s ease,visibility .5s;opacity:1;transform:translateY(0);visibility:visible}.advanced-settings.hidden{opacity:0;transform:translateY(20px);pointer-events:none;visibility:hidden}.advanced-settings .setting-group{flex:1 1 200px;display:flex;flex-direction:column;gap:.5rem}.advanced-settings label{font-size:.9rem;font-weight:500;color:var(--medium-text)}.advanced-settings select,.advanced-settings textarea{background:rgba(0,0,0,.2);border:1px solid var(--border-color);color:var(--light-text);padding:.5rem;border-radius:.5rem;font-family:inherit;font-size:1rem}.advanced-settings textarea{resize:none;height:40px}.aspect-ratio-group button{background:rgba(0,0,0,.2);border:1px solid var(--border-color);color:var(--medium-text);padding:.5rem;border-radius:.5rem;cursor:pointer;transition:all .2s ease}.aspect-ratio-group button.active{background:var(--accent-primary);color:#fff;border-color:var(--accent-primary)}
+       
+       .results-container {
+           grid-row: 2 / 3; 
+           width: 100%;
+           max-width: 1200px;
+           margin: 0 auto; 
+           overflow-y: auto;
+           padding: 1rem 1rem 18rem 1rem;
+           position: relative; 
+           -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+           mask-image: linear-gradient(to bottom, transparent 0%, black 5%, black 95%, transparent 100%);
+       }
+       .results-container::-webkit-scrollbar { width: 8px; }
+       .results-container::-webkit-scrollbar-track { background: transparent; }
+       .results-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+       .results-container::-webkit-scrollbar-thumb:hover { background: var(--medium-text); }
+
+       .image-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; width: 100%; }
+       .image-card { background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 1rem; overflow: hidden; aspect-ratio: var(--card-aspect-ratio, 1 / 1); position: relative; opacity: 0; animation: popIn 0.5s ease-out forwards; animation-delay: var(--delay, 0ms); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+       .image-card:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 10; }
+       .image-card .overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent 60%); display: flex; align-items: flex-end; justify-content: center; padding: 1rem; opacity: 0; transition: opacity 0.3s ease; }
+       .image-card:hover .overlay { opacity: 1; }
+       .download-options { display: flex; gap: 0.75rem; transform: translateY(10px); transition: transform 0.3s ease; }
+       .image-card:hover .download-options { transform: translateY(0); }
+       .download-btn { background: var(--ui-bg); color: var(--light-text); backdrop-filter: blur(10px); border: 1px solid var(--border-color); text-decoration: none; padding: 0.5rem 1rem; border-radius: 2rem; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; }
+       .download-btn:hover { background: var(--accent-primary); color: white; transform: scale(1.05); }
+       .download-btn svg { width: 16px; height: 16px; }
+       @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+       .image-card img { width: 100%; height: 100%; object-fit: cover; }
+   </style>
+</head>
+<body>
+   <canvas id="webgl-canvas"></canvas>
+
+   <div class="app-container" id="app-container">
+     
+       <div class="title-lockup">
+           <h1>Metrexy</h1>
+           <div class="subtitle">Image Lab</div>
+       </div>
+     
+       <div class="results-container">
+           <div id="image-grid" class="image-grid"></div>
+       </div>
+
+   </div>
+
+   <div class="generator-container">
+       <div class="advanced-settings" id="advanced-settings">
+           <div class="setting-group"><label for="style-select">Style</label><select id="style-select"><option value="photorealistic">Photorealistic</option><option value="digital art">Digital Art</option><option value="anime">Anime</option><option value="cyberpunk">Cyberpunk</option><option value="fantasy">Fantasy</option></select></div>
+           <div class="setting-group"><label>Aspect Ratio</label><div class="aspect-ratio-group" id="aspect-ratio-group"><button class="active" data-ratio="1:1">1:1</button><button data-ratio="16:9">16:9</button><button data-ratio="9:16">9:16</button></div></div>
+           <div class="setting-group"><label for="negative-prompt">Negative Prompt</label><textarea id="negative-prompt" placeholder="e.g., text, blurry, watermark" rows="1"></textarea></div>
+       </div>
+       <div class="generator-ui">
+            <textarea id="prompt-textarea" placeholder="Define your vision..." rows="1"></textarea>
+            <button id="generate-button" aria-label="Generate"><div class="icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"></path></svg></div><div class="spinner"></div></button>
+        </div>
+   </div>
+
+   <script>
+       document.addEventListener('DOMContentLoaded', () => {
+           console.log('DOM loaded successfully'); // Debug: Confirm DOM is loaded
+
+           // --- Roving & Blinking Stars Particle System ---
+           const vertexShader=`uniform float uTime;attribute float aScale;attribute vec3 aRandom;varying vec3 vRandom;void main(){vRandom=aRandom;vec4 modelPosition=modelMatrix*vec4(position,1.);float z_dist=40.;modelPosition.z+=uTime*.05;modelPosition.z=mod(modelPosition.z+z_dist/2.,z_dist)-z_dist/2.;vec4 viewPosition=viewMatrix*modelPosition;vec4 projectedPosition=projectionMatrix*viewPosition;gl_Position=projectedPosition;gl_PointSize=25.*aScale/-viewPosition.z;}`;
+           const fragmentShader=`uniform float uTime;varying vec3 vRandom;void main(){float dist=distance(gl_PointCoord,vec2(.5));if(dist>.5)discard;float blinkSpeed=vRandom.x*.3+.1;float blinkPhase=vRandom.y*6.28;float blinkValue=sin(uTime*blinkSpeed+blinkPhase);float alpha=smoothstep(-1.,1.,blinkValue)*.7;alpha=max(alpha,.05);vec3 color=vec3(.8,.9,1.)+vRandom*.1;gl_FragColor=vec4(color,alpha);}`;
+           try {
+               const canvas = document.getElementById('webgl-canvas');
+               if (!canvas || typeof THREE === 'undefined') throw new Error("Canvas or THREE.js not found");
+               const scene = new THREE.Scene();
+               const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, .1, 1e3);
+               const renderer = new THREE.WebGLRenderer({canvas: canvas, alpha: true});
+               renderer.setClearColor(526093, 1);
+               renderer.setSize(window.innerWidth, window.innerHeight);
+               renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+               const particleCount = 5e4;
+               const positions = new Float32Array(particleCount * 3);
+               const scales = new Float32Array(particleCount);
+               const randoms = new Float32Array(particleCount * 3);
+               const radius = 20;
+               for (let i = 0; i < particleCount; i++) {
+                   const i3 = i * 3;
+                   const u = Math.random();
+                   const v = Math.random();
+                   const theta = u * 2 * Math.PI;
+                   const phi = Math.acos(2 * v - 1);
+                   const r = Math.cbrt(Math.random()) * radius;
+                   positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+                   positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                   positions[i3 + 2] = r * Math.cos(phi);
+                   scales[i] = Math.random() * .5 + .1;
+                   randoms[i3] = Math.random();
+                   randoms[i3 + 1] = Math.random();
+                   randoms[i3 + 2] = Math.random();
+               }
+               const geometry = new THREE.BufferGeometry();
+               geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+               geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1));
+               geometry.setAttribute('aRandom', new THREE.BufferAttribute(randoms, 3));
+               const material = new THREE.ShaderMaterial({
+                   vertexShader,
+                   fragmentShader,
+                   uniforms: { uTime: { value: 0 } },
+                   blending: THREE.AdditiveBlending,
+                   transparent: true,
+                   depthWrite: false
+               });
+               const particles = new THREE.Points(geometry, material);
+               scene.add(particles);
+               camera.position.z = 10;
+               const mouse = new THREE.Vector2(0, 0);
+               const handleMouseMove = event => {
+                   mouse.x = event.clientX / window.innerWidth * 2 - 1;
+                   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+               };
+               const handleTouchMove = event => {
+                   if (event.touches.length > 0) {
+                       mouse.x = event.touches[0].clientX / window.innerWidth * 2 - 1;
+                       mouse.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+                   }
+               };
+               window.addEventListener('mousemove', handleMouseMove);
+               window.addEventListener('touchmove', handleTouchMove);
+               window.addEventListener('resize', () => {
+                   camera.aspect = window.innerWidth / window.innerHeight;
+                   camera.updateProjectionMatrix();
+                   renderer.setSize(window.innerWidth, window.innerHeight);
+                   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+               });
+               const clock = new THREE.Clock();
+               const animate = () => {
+                   requestAnimationFrame(animate);
+                   const elapsedTime = clock.getElapsedTime();
+                   material.uniforms.uTime.value = elapsedTime;
+                   camera.position.x += (mouse.x * .5 - camera.position.x) * .05;
+                   camera.position.y += (mouse.y * .5 - camera.position.y) * .05;
+                   camera.lookAt(scene.position);
+                   if (particles) {
+                       particles.rotation.y = elapsedTime * .01;
+                       particles.rotation.x = elapsedTime * .005;
+                   }
+                   renderer.render(scene, camera);
+               };
+               animate();
+               console.log('Three.js background initialized'); // Debug: Confirm Three.js setup
+           } catch (e) {
+               console.error("Failed to initialize 3D background:", e);
+           }
+         
+           // --- UI Element Selectors ---
+           const appContainer = document.getElementById('app-container');
+           const promptTextarea = document.getElementById('prompt-textarea');
+           const generateButton = document.getElementById('generate-button');
+           const imageGrid = document.getElementById('image-grid');
+           const advancedSettings = document.getElementById('advanced-settings');
+           const styleSelect = document.getElementById('style-select');
+           const aspectRatioGroup = document.getElementById('aspect-ratio-group');
+           const negativePromptTextarea = document.getElementById('negative-prompt');
+           const generatorUi = document.querySelector('.generator-ui');
+
+           console.log('UI Elements:', { // Debug: Verify DOM elements
+               appContainer, promptTextarea, generateButton, imageGrid, 
+               advancedSettings, styleSelect, aspectRatioGroup, negativePromptTextarea, generatorUi
+           });
+
+           // --- UI Event Listeners ---
+           promptTextarea.addEventListener('input', () => {
+               advancedSettings.classList.toggle('hidden', promptTextarea.value.trim().length > 0);
+               console.log('Prompt input:', promptTextarea.value); // Debug: Log prompt input
+           });
+
+           aspectRatioGroup.addEventListener('click', (e) => {
+               if (e.target.tagName === 'BUTTON') {
+                   const currentActive = aspectRatioGroup.querySelector('.active');
+                   if (currentActive) {
+                       currentActive.classList.remove('active');
+                   }
+                   e.target.classList.add('active');
+                   console.log('Aspect ratio selected:', e.target.dataset.ratio); // Debug: Log aspect ratio
+               }
+           });
+           
+           // --- Helper Functions ---
+           const showErrorState = (message) => {
+               console.error(message);
+               generatorUi.style.borderColor = 'var(--error-color)';
+               promptTextarea.placeholder = message;
+               setTimeout(() => {
+                   generatorUi.style.borderColor = 'var(--border-color)';
+                   promptTextarea.placeholder = 'Define your vision...';
+               }, 3000);
+           };
+
+           const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+           // --- Replicate API Call ---
+// --- Replicate API Call ---
+    const 
+    callReplicateApi = async (prompt, negative_prompt, width, height) => {
+    console.log('Calling Netlify function with prompt:', prompt);
+
+    const endpoint = '/.netlify/functions/generate-image';
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt, negative_prompt, width, height }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.detail || "An unknown error occurred.");
+        }
+        return result;
+
+    } catch (error) {
+        console.error('Netlify Function Error:', error);
+        throw error;
+    }
+};
+
+           // --- Main Image Generation Logic ---
+           const generateImages = async () => {
+               const basePrompt = promptTextarea.value.trim();
+               if (!basePrompt) {
+                   showErrorState('Vision required. Please enter a prompt.');
+                   return;
+               }
+             
+               generateButton.disabled = true;
+               generateButton.classList.add('loading');
+               appContainer.classList.add('loading-active');
+               imageGrid.innerHTML = '';
+             
+               try {
+                   const style = styleSelect.value;
+                   const aspectRatio = aspectRatioGroup.querySelector('.active').dataset.ratio;
+                   const negativePrompt = negativePromptTextarea.value.trim();
+                   
+                   let promptParts = [basePrompt, style, 'masterpiece', 'high detail', 'professional quality'];
+                   let fullPrompt = promptParts.join(', ');
+                   
+                   let width = 1024;
+                   let height = 1024;
+                   if (aspectRatio === '16:9') {
+                       width = 1344;
+                       height = 768;
+                   } else if (aspectRatio === '9:16') {
+                       width = 768;
+                       height = 1344;
+                   }
+
+                   console.log("Final prompt:", fullPrompt, "Aspect Ratio:", aspectRatio, "Negative Prompt:", negativePrompt); // Debug: Log parameters
+                   
+                   imageGrid.style.setProperty('--card-aspect-ratio', aspectRatio.replace(':', ' / '));
+
+                   const imageUrls = await callReplicateApi(fullPrompt, negativePrompt, width, height);
+                   console.log('Image URLs:', imageUrls); // Debug: Log image URLs
+                 
+                   if (imageUrls && imageUrls.length > 0) {
+                       imageUrls.forEach((imageUrl, index) => {
+                           const card = document.createElement('div');
+                           card.className = 'image-card';
+                           card.style.setProperty('--delay', `${index * 150}ms`);
+                           
+                           const img = document.createElement('img');
+                           img.src = imageUrl;
+                           img.alt = `Generated art for: ${basePrompt}`;
+                           img.loading = 'lazy';
+                           // Removed crossOrigin for testing
+                           
+                           const overlay = document.createElement('div');
+                           overlay.className = 'overlay';
+                           
+                           const downloadOptions = document.createElement('div');
+                           downloadOptions.className = 'download-options';
+                           
+                           const safeFilename = basePrompt.substring(0, 30).replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                           
+                           const downloadLink = document.createElement('a');
+                           downloadLink.href = imageUrl;
+                           downloadLink.download = `metrexy-${safeFilename}-${index + 1}.png`;
+                           downloadLink.className = 'download-btn';
+                           downloadLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10H18L12 16L6 10H11V4H13V10ZM4 18H20V20H4V18Z"></path></svg> Download`;
+                           
+                           downloadOptions.appendChild(downloadLink);
+                           overlay.appendChild(downloadOptions);
+                           card.appendChild(img);
+                           card.appendChild(overlay);
+                           imageGrid.appendChild(card);
+                       });
+                   } else {
+                       throw new Error('The model returned no results. Please try another prompt.');
+                   }
+               } catch (err) {
+                   showErrorState(`Error: ${err.message}`);
+               } finally {
+                   generateButton.disabled = false;
+                   generateButton.classList.remove('loading');
+                   appContainer.classList.remove('loading-active');
+               }
+           };
+         
+           generateButton.addEventListener('click', generateImages);
+           promptTextarea.addEventListener('keypress', (e) => {
+               if (e.key === 'Enter' && !e.shiftKey) {
+                   e.preventDefault();
+                   generateImages();
+               }
+           });
+       });
+   </script>
+</body>
+</html>
